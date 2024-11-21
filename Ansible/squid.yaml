@@ -1,8 +1,13 @@
 ---
 - name: Installing & configuring Squid
   hosts: [hosts]
+  become: true
   tasks:
-
+  - name: upgrade & update apt packages
+    ansible.builtin.apt:
+      upgrade: true
+      update_cache: true
+    
   - name: Install squid
     ansible.builtin.apt:
       name: squid
