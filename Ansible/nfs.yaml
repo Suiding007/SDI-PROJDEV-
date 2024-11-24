@@ -1,0 +1,19 @@
+---
+#https://www.digitalocean.com/community/tutorials/how-to-set-up-an-nfs-mount-on-ubuntu-20-04
+- name: install and configure nfs
+  hosts: server
+  become: True
+  tasks:
+  - name: install nfs package on server
+    apt:
+      name: nfs-kernel-server
+      update_cache: yes
+
+- name: install nfs package on client
+  hosts: host
+  become: True
+  tasks:
+  - name: install nfs package on host
+    apt:
+      name: nfs-kernel-server
+      update_cache: yes
