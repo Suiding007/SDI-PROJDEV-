@@ -15,5 +15,5 @@
   tasks:
   - name: install nfs package on host
     apt:
-      name: nfs-kernel-server
+      name: nfs-common
       update_cache: yes
