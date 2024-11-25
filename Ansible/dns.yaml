@@ -1,5 +1,5 @@
 ---
-- name: Create and start a proxmox container
+- name: Create and configure DNS
   hosts: dns
   become: True
   tasks: 
