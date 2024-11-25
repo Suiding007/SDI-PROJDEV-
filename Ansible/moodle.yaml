@@ -33,10 +33,9 @@
           - php7.4-zip
           - php7.4-soap
           - php7.4-mbstring
-          - php7.4-mysql
         state: present
 
-    - name: set preference PHP-version to 7.4
+    - name: Set preference PHP-version to 7.4
       ansible.builtin.shell: sudo update-alternatives --set php /usr/bin/php7.4
 
     - name: Install Apache, MySQL, and additional PHP modules
@@ -71,7 +70,7 @@
         dest: /var/www/html
         remote_src: yes
 
-    - name: mkdir /var/moodledata
+    - name: Create directory /var/moodledata
       ansible.builtin.shell: sudo mkdir /var/moodledata
 
     - name: Set permissions for /var/moodledata
@@ -118,7 +117,7 @@
             'dbcollation' => 'utf8mb4_unicode_ci',
           );
 
-          $CFG->wwwroot   = 'http://192.168.109.146/moodle';
+          $CFG->wwwroot   = 'http://192.168.109.142/moodle';
           $CFG->dataroot  = '/var/moodledata';
           $CFG->admin     = 'admin';
 
@@ -129,6 +128,26 @@
           // There is no php closing tag in this file,
           // it is intentional because it prevents trailing whitespace problems!
 
+    - name: Create Moodle 000-default.conf file (Apache config file)
+      copy:
+        dest: /etc/apache2/sites-available/000-default.conf
+        content: |
+          <VirtualHost *:80>
+
+                  ServerAdmin webmaster@localhost
+                  DocumentRoot /var/www/html
+
+                  ErrorLog ${APACHE_LOG_DIR}/error.log
+                  CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+                  # Added
+
+                  RedirectMatch "^/$" "/moodle" 
+
+          </VirtualHost>
+
+    - name: Restart apache2
+      ansible.builtin.shell: sudo systemctl restart apache2
+
     - name: Launch install
       ansible.builtin.shell: sudo php /var/www/html/moodle/admin/cli/install_database.php --adminuser=pcgebruiker --adminpass=Welkom123 --adminemail=e.d.jongsma@st.hanze.nl --agree-license
-
