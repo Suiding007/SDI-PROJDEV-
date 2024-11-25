@@ -1,0 +1,134 @@
+---
+- name: Install Moodle and configure the environment 
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Install software-properties-common
+      apt:
+        name: software-properties-common
+        state: present
+        update_cache: yes
+
+    - name: Add Ondrej PHP repository
+      apt_repository:
+        repo: ppa:ondrej/php
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install PHP 7.4 and required extensions
+      apt:
+        name:
+          - php7.4
+          - php7.4-pspell
+          - php7.4-curl
+          - php7.4-gd
+          - php7.4-intl
+          - php7.4-mysql
+          - php7.4-xml
+          - php7.4-xmlrpc
+          - php7.4-ldap
+          - php7.4-zip
+          - php7.4-soap
+          - php7.4-mbstring
+          - php7.4-mysql
+        state: present
+
+    - name: set preference PHP-version to 7.4
+      ansible.builtin.shell: sudo update-alternatives --set php /usr/bin/php7.4
+
+    - name: Install Apache, MySQL, and additional PHP modules
+      apt:
+        name:
+          - apache2
+          - mysql-client
+          - mysql-server
+          - libapache2-mod-php
+        state: present
+
+    - name: Install Git
+      apt:
+        name: git
+        state: present
+
+    - name: Restart Apache service
+      service:
+        name: apache2
+        state: restarted
+
+    - name: Clone Moodle repository
+      git:
+        repo: git://git.moodle.org/moodle.git
+        dest: /opt/moodle
+        version: MOODLE_400_STABLE
+        track_submodules: yes
+
+    - name: Copy Moodle to web server directory
+      copy:
+        src: /opt/moodle
+        dest: /var/www/html
+        remote_src: yes
+
+    - name: mkdir /var/moodledata
+      ansible.builtin.shell: sudo mkdir /var/moodledata
+
+    - name: Set permissions for /var/moodledata
+      ansible.builtin.shell: sudo chown -R www-data /var/moodledata
+
+    - name: Set permissions for /var/www
+      ansible.builtin.shell: sudo chmod -R 777 /var/www
+
+    - name: Set permissions for /var/moodledata
+      ansible.builtin.shell: sudo chmod -R 777 /var/moodledata
+
+    - name: Set permissions for config.php
+      ansible.builtin.shell: sudo chmod -R 0755 /var/www/html/moodle
+
+    - name: Restart MySQL service
+      service:
+        name: mysql
+        state: restarted
+
+    - name: Run the MySQL setup script
+      script: bash/mysql.sh
+
+    - name: Create Moodle config.php file
+      copy:
+        dest: /var/www/html/moodle/config.php
+        content: |
+          <?php  // Moodle configuration file
+
+          unset($CFG);
+          global $CFG;
+          $CFG = new stdClass();
+
+          $CFG->dbtype    = 'mysqli';
+          $CFG->dblibrary = 'native';
+          $CFG->dbhost    = 'localhost';
+          $CFG->dbname    = 'moodle';
+          $CFG->dbuser    = 'pcgebruiker';
+          $CFG->dbpass    = 'Welkom123';
+          $CFG->prefix    = 'mdl_';
+          $CFG->dboptions = array (
+            'dbpersist' => 0,
+            'dbport' => '',
+            'dbsocket' => '',
+            'dbcollation' => 'utf8mb4_unicode_ci',
+          );
+
+          $CFG->wwwroot   = 'http://192.168.109.146/moodle';
+          $CFG->dataroot  = '/var/moodledata';
+          $CFG->admin     = 'admin';
+
+          $CFG->directorypermissions = 0777;
+
+          require_once(__DIR__ . '/lib/setup.php');
+
+          // There is no php closing tag in this file,
+          // it is intentional because it prevents trailing whitespace problems!
+
+    - name: Launch install
+      ansible.builtin.shell: sudo php /var/www/html/moodle/admin/cli/install_database.php --adminuser=pcgebruiker --adminpass=Welkom123 --adminemail=e.d.jongsma@st.hanze.nl --agree-license
+
