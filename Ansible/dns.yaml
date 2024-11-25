@@ -1,0 +1,74 @@
+---
+- name: Create and start a proxmox container
+  hosts: dns
+  become: True
+  tasks: 
+    - name: "install bind9"
+      apt:
+        pkg:
+          - bind9 
+          - bind9utils
+          - bind9-doc
+        update_cache: yes
+        state: present
+
+- name: Configure dns server 1
+  hosts: dns1
+  become: True
+  vars:
+  tasks:
+    - name: Create folder Forward and reverse
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /etc/bind/forward
+        - /etc/bind/reverse
+
+    - name: Create files for dns
+      file:
+        path: "{{ item }}"
+        state: touch
+      loop:
+        - /etc/bind/forward/db.ijsselstreek-university.nl
+        - /etc/bind/reverse/db.reverse
+
+    - name: Change named.conf.option file
+      copy:
+        dest: /etc/bind/named.conf.options
+        content:  |
+          acl "trusted" {
+              10.24.27.0/24;
+          };
+
+          options {
+                  directory "/var/cache/bind";
+
+                  recursion yes;
+                  allow-recursion { trusted; };
+                  listen-on { 10.24.27.60; };
+                  allow-transfer { none; };
+
+                  forwarders {
+                          1.1.1.1;
+                  };
+
+                  dnssec-validation auto;
+                  listen-on-v6 { any; };
+          };
+        
+    - name: Change named.conf.option file
+      copy:
+        dest: /etc/bind/named.conf.local
+        content:  |
+          zone "ijsselstreek-university.nl"{
+                  type primary;
+                  file "/etc/bind/forward/db.ijsselstreek-university.nl";
+                  allow-transfer { 10.24.27.62; };
+          };
+
+          zone "24.10.in-addr.arpa"{
+                  type primary;
+                  file "/etc/reverse/db.reverse";
+                  allow-transfer { 10.24.27.62; };
+          };
