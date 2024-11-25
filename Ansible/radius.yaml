@@ -1,0 +1,62 @@
+--- 
+- name: Installing & configuring Radius
+  hosts: test
+  become: true
+  tasks:
+  - name: upgrade & update apt packages
+    ansible.builtin.apt:
+      upgrade: true
+      update_cache: true
+
+  - name: Install freeradius
+    ansible.builtin.apt:
+      name: freeradius
+      state: present
+
+  - name: Install common utils
+    ansible.builtin.apt:
+      name: freeradius-ldap
+      state: present
+
+  - name: Configuring clients.conf files
+    ansible.builtin.lineinfile:
+      path: /etc/freeradius/3.0/clients.conf
+      line: |
+        client client-radius {
+        ipaddr		= 192.168.163.135 #radius server
+        secret		= Welkom123
+        }
+      state: present
+
+    become_user: root
+
+  - name: Configuring  ldap server /etc/freeradius/3.0/mods-available/ldap
+    ansible.builtin.lineinfile:
+      path: /etc/freeradius/3.0/mods-available/ldap
+      insertafter: '^#\tserver = ''ldap\.rrdns\.example\.org''$'
+      line: '        server = "192.168.163.133" #ldap server'
+      state: present
+    become_user: root
+
+  - name: Configuring identity /etc/freeradius/3.0/mods-available/ldap
+    ansible.builtin.lineinfile:
+      path: /etc/freeradius/3.0/mods-available/ldap
+      insertafter: '^#\s+identity\s=\s'cn=[a-zA-Z0-9]+,dc=[a-zA-Z0-9]+(,dc=[a-zA-Z0-9]+)+'$'
+      line: '        identity = "admin,dc=radius,dc=ijsselstreek-university,dc=nl"'
+      state: present
+    become_user: root
+
+  - name: Configuring password /etc/freeradius/3.0/mods-available/ldap
+    ansible.builtin.lineinfile:
+      path: /etc/freeradius/3.0/mods-available/ldap
+      insertafter: '^#\s+password\s=\s\w+$'
+      line: '        password = Welkom123'
+      state: present
+    become_user: root
+
+  - name: Replace old hostname with new hostname (requires Ansible >= 2.4)
+    ansible.builtin.replace:
+      path: /etc/freeradius/3.0/mods-available/ldap
+      regexp: '        base_dn = ''dc=example,dc=org'''
+      replace: '        dc=radius,dc=ijsselstreek-university,dc=nl'
+    become_user: root
