@@ -41,7 +41,7 @@
   - name: Configuring identity /etc/freeradius/3.0/mods-available/ldap
     ansible.builtin.lineinfile:
       path: /etc/freeradius/3.0/mods-available/ldap
-      insertafter: '^#\s+identity\s=\s'cn=[a-zA-Z0-9]+,dc=[a-zA-Z0-9]+(,dc=[a-zA-Z0-9]+)+'$'
+      insertafter: '^#\s+identity\s=\s''cn=[a-zA-Z0-9]+,dc=[a-zA-Z0-9]+(,dc=[a-zA-Z0-9]+)+''$'
       line: '        identity = "admin,dc=radius,dc=ijsselstreek-university,dc=nl"'
       state: present
     become_user: root
@@ -57,6 +57,13 @@
   - name: Replace old hostname with new hostname (requires Ansible >= 2.4)
     ansible.builtin.replace:
       path: /etc/freeradius/3.0/mods-available/ldap
-      regexp: '        base_dn = ''dc=example,dc=org'''
-      replace: '        dc=radius,dc=ijsselstreek-university,dc=nl'
+      regexp: 'base_dn\s*=\s*''dc=example,dc=org'''
+      replace: 'dc=radius,dc=ijsselstreek-university,dc=nl'
     become_user: root
+
+  - name: Configuring default /etc/freeradius/3.0/sites-available/default
+    ansible.builtin.lineinfile: 
+      path: /etc/freeradius/3.0/sites-available/default
+      regexp:
+    become_user: root
+    
