@@ -1,0 +1,47 @@
+--- 
+- name: Installing & configuring Radius
+  hosts: test
+  become: true
+  tasks:
+  - name: upgrade & update apt packages
+    ansible.builtin.apt:
+      upgrade: true
+      update_cache: true
+
+  - name: Install freeradius
+    ansible.builtin.apt:
+      name: freeradius
+      state: present
+
+  - name: Install common utils
+    ansible.builtin.apt:
+      name: freeradius-ldap
+      state: present
+
+  - name: Overwrite clients.conf
+    template:
+      src: templates/clients.conf
+      dest: /etc/freeradius/3.0/clients.conf
+      backup: yes
+      become_user: root
+
+  - name: Overwrite ldap
+    template:
+      src: templates/mods-available/ldap
+      dest: /etc/freeradius/3.0/ldap
+      backup: yes
+      become_user: root
+
+  - name: Overwrite default
+    template:
+      src: templates/sites-available/default
+      dest: /etc/freeradius/3.0/default
+      backup: yes
+      become_user: root
+
+  - name: Overwrite inner-tunnel
+    template:
+      src: templates/sites-available/inner-tunnel
+      dest: /etc/freeradius/3.0/inner-tunnel
+      backup: yes
+      become_user: root
