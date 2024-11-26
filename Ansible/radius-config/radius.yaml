@@ -2,6 +2,9 @@
 - name: Installing & configuring Radius
   hosts: test
   become: true
+  vars:
+    radius-server: 10.24.32.189
+
   tasks:
   - name: upgrade & update apt packages
     ansible.builtin.apt:
@@ -20,7 +23,7 @@
 
   - name: Overwrite clients.conf
     template:
-      src: templates/clients.conf
+      src: templates/clients.conf.j2
       dest: /etc/freeradius/3.0/clients.conf
       backup: yes
       become_user: root

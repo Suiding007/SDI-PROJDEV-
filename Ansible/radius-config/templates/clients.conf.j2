@@ -269,7 +269,7 @@ client localhost_ipv6 {
 #  i.e. The entry from the smallest possible network.
 #
 client client-radius {
-	ipaddr		= 192.168.163.135
+	ipaddr		= {{ radius-server }} #192.168.163.135 -- radius server
 	secret		= Welkom123
 }
 
