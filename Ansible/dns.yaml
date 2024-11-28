@@ -19,6 +19,8 @@
       dns1: 10.24.27.70
       dns2: 10.24.27.71
       forward: 1.1.1.1
+      domain: ijsselstreek-university.nl
+      subnet: "10.24.27.0/24"
     tasks:
       - name: Create folder Forward and reverse
         file:
@@ -33,7 +35,7 @@
           path: "{{ item }}"
           state: touch
         loop:
-          - /etc/bind/forward/db.ijsselstreek-university.nl
+          - /etc/bind/forward/db.{{ domain }}
           - /etc/bind/reverse/db.reverse
   
       - name: Change named.conf.option file
@@ -41,7 +43,7 @@
           dest: /etc/bind/named.conf.options
           content:  |
             acl "trusted" {
-                10.24.27.0/24;
+                {{ subnet }};
             };
   
             options {
@@ -65,9 +67,9 @@
         copy:
           dest: /etc/bind/named.conf.local
           content:  |
-            zone "ijsselstreek-university.nl"{
+            zone "{{ domain }}"{
                     type primary;
-                    file "/etc/bind/forward/db.ijsselstreek-university.nl";
+                    file "/etc/bind/forward/db.{{ domain}}";
                     allow-transfer { {{ dns2 }}; };
             };
   
@@ -80,10 +82,10 @@
   
       - name: Add content to file in Forward folder
         copy:
-          dest: /etc/bind/forward/db.ijsselstreek-university.nl
+          dest: /etc/bind/forward/db.{{ domain }}
           content:  |
             $TTL    604800
-            @       IN      SOA     ijsselstreek-university.nl. admin.ijsselstreek-university.nl. (
+            @       IN      SOA     {{ domain }}. admin.{{ domain }}. (
                                           1         ; Serial
                                      604800         ; Refresh
                                       86400         ; Retry
@@ -91,8 +93,8 @@
                                      604800 )       ; Negative Cache TTL
   
             ; name servers - NS records
-                              IN      NS          ns1.ijsselstreek-university.nl.
-                              IN      NS          ns2.ijsselstreek-university.nl.
+                              IN      NS          ns1.{{ domain}}.
+                              IN      NS          ns2.{{ domain}}.
             ; name servers - A records
             ns1               IN      A           {{ dns1 }}
             ns2               IN      A           {{ dns2 }}
@@ -107,7 +109,7 @@
           dest: /etc/bind/reverse/db.reverse
           content:  |
             $TTL    604800
-            @       IN      SOA     ns1.ijsselstreek-university.nl. admin.ijsselstreek-university.nl. (
+            @       IN      SOA     ns1.{{ domain}}. admin.{{ domain }}. (
                                         1         ; Serial
                                    604800         ; Refresh
                                     86400         ; Retry
@@ -116,12 +118,12 @@
             ;
   
             ; name servers - NS records
-                    IN      NS      ns1.ijsselstreek-university.nl.
-                    IN      NS      ns2.ijsselstreek-university.nl.
+                    IN      NS      ns1.{{ domain }}.
+                    IN      NS      ns2.{{ domain }}.
   
             ; PTR records
-            70.27   IN      PTR     ns1.ijsselstreek-university.
-            71.27   IN      PTR     ns2.ijsselstreek-university.
+            70.27   IN      PTR     ns1.{{ domain }}.
+            71.27   IN      PTR     ns2.{{ domain}}.
             
       - name: Reload bind9 services
         service:
@@ -136,14 +138,16 @@
       dns1: 10.24.27.70
       dns2: 10.24.27.71
       forward: 1.1.1.1
+      domain: ijsselstreek-university.nl
+      subnet: "10.24.27.0/24"
     tasks:
       - name: Change named.conf.local file
         copy:
           dest: /etc/bind/named.conf.local
           content:  |
-            zone "ijsselstreek-university.nl" {
+            zone "{{ domain }}" {
                 type secondary;
-                file "db.ijsselstreek-university.nl";
+                file "db.{{ domain}}";
                 masters { {{ dns1 }}; };
             };
   
@@ -158,7 +162,7 @@
           dest: /etc/bind/named.conf.options
           content:  |
             acl "trusted" {
-                    10.24.27.0/24;   
+                    {{ subnet }};   
             };
   
             options {
