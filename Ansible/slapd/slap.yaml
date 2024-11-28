@@ -1,0 +1,34 @@
+---
+- name: Install Apache, PHP, and LDAP packages
+  hosts: test
+  become: yes
+
+  tasks:
+    - name: Ensure Apache and PHP packages are installed
+      apt:
+        name:
+          - apache2
+          - php
+          - php-cgi
+          - libapache2-mod-php
+          - php-mbstring
+          - php-common
+          - php-pear
+        state: present
+        update_cache: yes
+
+    - name: Ensure LDAP server and utilities are installed
+      apt:
+        name:
+          - slapd
+          - ldap-utils
+        state: present
+        update_cache: yes
+
+    - name: Ensure LDAP Account Manager is installed
+      apt:
+        name: ldap-account-manager
+        state: present
+        update_cache: yes
+
+#sudo dpkg-reconfigure slapd
