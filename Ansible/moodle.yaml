@@ -117,7 +117,7 @@
             'dbcollation' => 'utf8mb4_unicode_ci',
           );
 
-          $CFG->wwwroot   = 'http://192.168.109.142/moodle';
+          $CFG->wwwroot   = 'http://192.168.109.146/moodle';
           $CFG->dataroot  = '/var/moodledata';
           $CFG->admin     = 'admin';
 
@@ -150,4 +150,34 @@
       ansible.builtin.shell: sudo systemctl restart apache2
 
     - name: Launch install
-      ansible.builtin.shell: sudo php /var/www/html/moodle/admin/cli/install_database.php --adminuser=pcgebruiker --adminpass=Welkom123 --adminemail=e.d.jongsma@st.hanze.nl --agree-license
+      ansible.builtin.shell: sudo php /var/www/html/moodle/admin/cli/install_database.php --adminuser=pcgebruiker --adminpass=Welkom123 --adminemail=testmail@test.nl --agree-license
+
+    - name: Create course.csv
+      copy:
+        dest: /var/www/html/moodle/admin/tool/uploadcourse/cli/course.csv
+        content: |
+          shortname,fullname,category
+          4.1,NSE periode 1,1
+          4.2,NSE periode 2,1
+          4.3,NSE periode 3,1
+          4.4,NSE periode 4,1
+
+    - name: Create users.csv
+      copy:
+        dest: /var/www/html/moodle/admin/tool/uploaduser/cli/users.csv
+        content: |
+          username,password,firstname,lastname,email,course1,role1,course2,role2,course3,role3,course4,role4
+          pcgebruiker1,Welkom123,pcgebruiker1,editingteacher,pcgebruiker1@test.com,4.1,editingteacher,4.2,editingteacher,4.3,editingteacher,4.4,editingteacher
+          pcgebruiker2,Welkom123,pcgebruiker2,student,pcgebruiker2@test.com,4.1,student,4.2,student,4.3,student,4.4,student
+          pcgebruiker3,Welkom123,pcgebruiker3,manager,pcgebruiker3@test.com,4.1,manager,4.2,manager,4.3,manager,4.4,manager
+          pcgebruiker4,Welkom123,pcgebruiker4,student,pcgebruiker4@test.com,4.1,student,4.2,student,4.3,student,4.4,student
+
+    - name: Launch create course
+      ansible.builtin.shell: php uploadcourse.php --file=course.csv -m=createorupdate -u=missingonly --allowdeletes --allowrenames --allowresets
+      args:
+        chdir: /var/www/html/moodle/admin/tool/uploadcourse/cli
+
+    - name: Launch create users
+      ansible.builtin.shell: php uploaduser.php --file=users.csv --uuforcepasswordchange=0
+      args:
+        chdir: /var/www/html/moodle/admin/tool/uploaduser/cli
