@@ -1,74 +1,188 @@
 ---
-- name: Create and configure DNS
-  hosts: dns
-  become: True
-  tasks: 
-    - name: "install bind9"
-      apt:
-        pkg:
-          - bind9 
-          - bind9utils
-          - bind9-doc
-        update_cache: yes
-        state: present
-
-- name: Configure dns server 1
-  hosts: dns1
-  become: True
-  vars:
-  tasks:
-    - name: Create folder Forward and reverse
-      file:
-        path: "{{ item }}"
-        state: directory
-      loop:
-        - /etc/bind/forward
-        - /etc/bind/reverse
-
-    - name: Create files for dns
-      file:
-        path: "{{ item }}"
-        state: touch
-      loop:
-        - /etc/bind/forward/db.ijsselstreek-university.nl
-        - /etc/bind/reverse/db.reverse
-
-    - name: Change named.conf.option file
-      copy:
-        dest: /etc/bind/named.conf.options
-        content:  |
-          acl "trusted" {
-              10.24.27.0/24;
-          };
-
-          options {
-                  directory "/var/cache/bind";
-
-                  recursion yes;
-                  allow-recursion { trusted; };
-                  listen-on { 10.24.27.60; };
-                  allow-transfer { none; };
-
-                  forwarders {
-                          1.1.1.1;
-                  };
-
-                  dnssec-validation auto;
-                  listen-on-v6 { any; };
-          };
-        
-    - name: Change named.conf.option file
-      copy:
-        dest: /etc/bind/named.conf.local
-        content:  |
-          zone "ijsselstreek-university.nl"{
-                  type primary;
-                  file "/etc/bind/forward/db.ijsselstreek-university.nl";
-                  allow-transfer { 10.24.27.62; };
-          };
-
-          zone "24.10.in-addr.arpa"{
-                  type primary;
-                  file "/etc/reverse/db.reverse";
-                  allow-transfer { 10.24.27.62; };
-          };
+  - name: Install bind9
+    hosts: dns
+    become: True
+    tasks: 
+      - name: "install bind9"
+        apt:
+          pkg:
+            - bind9 
+            - bind9utils
+            - bind9-doc
+          update_cache: yes
+          state: present
+  
+  - name: Configure dns server 1
+    hosts: dns1
+    become: True
+    vars:
+      dns1: 10.24.27.70
+      dns2: 10.24.27.71
+      forward: 1.1.1.1
+      domain: ijsselstreek-university.nl
+      subnet: "10.24.27.0/24"
+    tasks:
+      - name: Create folder Forward and reverse
+        file:
+          path: "{{ item }}"
+          state: directory
+        loop:
+          - /etc/bind/forward
+          - /etc/bind/reverse
+  
+      - name: Create files for dns
+        file:
+          path: "{{ item }}"
+          state: touch
+        loop:
+          - /etc/bind/forward/db.{{ domain }}
+          - /etc/bind/reverse/db.reverse
+  
+      - name: Change named.conf.option file
+        copy:
+          dest: /etc/bind/named.conf.options
+          content:  |
+            acl "trusted" {
+                {{ subnet }};
+            };
+  
+            options {
+                    directory "/var/cache/bind";
+  
+                    recursion yes;
+                    allow-recursion { trusted; };
+                    listen-on { {{ dns1 }}; };
+                    allow-transfer { none; };
+  
+                    forwarders {
+                            {{ forward }};
+                    };
+  
+                    dnssec-validation auto;
+                    listen-on-v6 { any; };
+            };
+  
+          
+      - name: Change named.conf.local file
+        copy:
+          dest: /etc/bind/named.conf.local
+          content:  |
+            zone "{{ domain }}"{
+                    type primary;
+                    file "/etc/bind/forward/db.{{ domain}}";
+                    allow-transfer { {{ dns2 }}; };
+            };
+  
+            zone "24.10.in-addr.arpa"{
+                    type primary;
+                    file "/etc/reverse/db.reverse";
+                    allow-transfer { {{ dns2 }}; };
+            };
+  
+  
+      - name: Add content to file in Forward folder
+        copy:
+          dest: /etc/bind/forward/db.{{ domain }}
+          content:  |
+            $TTL    604800
+            @       IN      SOA     {{ domain }}. admin.{{ domain }}. (
+                                          1         ; Serial
+                                     604800         ; Refresh
+                                      86400         ; Retry
+                                    2419200         ; Expire
+                                     604800 )       ; Negative Cache TTL
+  
+            ; name servers - NS records
+                              IN      NS          ns1.{{ domain}}.
+                              IN      NS          ns2.{{ domain}}.
+            ; name servers - A records
+            ns1               IN      A           {{ dns1 }}
+            ns2               IN      A           {{ dns2 }}
+  
+            ; records
+            @                 IN      A           {{ dns1 }}
+            @                 IN      A           {{ dns2 }}
+  
+  
+      - name: Add content to file in Reverse folder
+        copy:
+          dest: /etc/bind/reverse/db.reverse
+          content:  |
+            $TTL    604800
+            @       IN      SOA     ns1.{{ domain}}. admin.{{ domain }}. (
+                                        1         ; Serial
+                                   604800         ; Refresh
+                                    86400         ; Retry
+                                  2419200         ; Expire
+                                   604800 )       ; Negative Cache TTL
+            ;
+  
+            ; name servers - NS records
+                    IN      NS      ns1.{{ domain }}.
+                    IN      NS      ns2.{{ domain }}.
+  
+            ; PTR records
+            70.27   IN      PTR     ns1.{{ domain }}.
+            71.27   IN      PTR     ns2.{{ domain}}.
+            
+      - name: Reload bind9 services
+        service:
+          name: bind9
+          state: reloaded
+  
+  
+  - name: Configure dns server 2
+    hosts: dns2
+    become: True
+    vars:
+      dns1: 10.24.27.70
+      dns2: 10.24.27.71
+      forward: 1.1.1.1
+      domain: ijsselstreek-university.nl
+      subnet: "10.24.27.0/24"
+    tasks:
+      - name: Change named.conf.local file
+        copy:
+          dest: /etc/bind/named.conf.local
+          content:  |
+            zone "{{ domain }}" {
+                type secondary;
+                file "db.{{ domain}}";
+                masters { {{ dns1 }}; };
+            };
+  
+            zone "27.24.10.in-addr.arpa" {
+                type secondary;
+                file "db.reverse";
+                masters { {{ dns1 }}; };
+            };
+  
+      - name: Change named.conf.option file
+        copy:
+          dest: /etc/bind/named.conf.options
+          content:  |
+            acl "trusted" {
+                    {{ subnet }};   
+            };
+  
+            options {
+                    directory "/var/cache/bind";
+  
+                    recursion yes;
+                    allow-recursion { trusted; };
+                    listen-on { {{ dns2 }}; };      
+                    allow-transfer { none; };          
+  
+  
+                    forwarders {
+                            {{ forward }};
+                    };
+  
+                    dnssec-validation auto;
+                    listen-on-v6 { any; };
+            };
+  
+      - name: Reload bind9 services
+        service:
+          name: bind9
+          state: reloaded
