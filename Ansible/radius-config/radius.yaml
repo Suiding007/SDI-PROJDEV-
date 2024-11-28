@@ -45,3 +45,8 @@
       src: /etc/ansible/ansible_inv/templates/inner-tunnel
       dest: /etc/freeradius/3.0/sites-available/inner-tunnel
     become_user: root
+
+  - name: Link the files
+    ansible.builtin.shell: sudo ln -s /etc/freeradius/3.0/mods-available/ldap /etc/freeradius/3.0/mods-enabled/
+    args:
+      executable: /bin/bash
