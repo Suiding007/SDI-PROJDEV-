@@ -1,0 +1,84 @@
+---
+- name: setting up gitea and gitea runner
+  hosts: gitea
+  vars:
+  tasks:
+    - name: install docker dependencies
+      apt:
+        pkg:
+          - docker.io
+          - docker-compose
+        state: present
+        update_cache: yes
+
+    - name: create folder for gitea files
+      file:
+        path: /root/gitea
+        state: directory
+
+    - name: create folder for action runner files
+      file:
+        path: /root/runner
+        state: directory
+
+    - name: create docker-compose file in gitea directory
+      file:
+        path: /root/gitea/docker-compose-gitea.yaml
+        state: touch
+    
+    - name: create docker-compose file in runner directory
+      file:
+        path: /root/runner/docker-compose-runner.yaml
+        state: touch
+        
+    - name: add content to gitea compose
+      copy:
+        dest: /root/gitea/docker-compose-gitea.yaml
+        content: |
+          version: "3"
+          networks:
+            gitea:
+              external: false
+
+          services:
+            server:
+              image: gitea/gitea:1.22.4
+              container_name: gitea
+              environment:
+                - USER_UID=1000
+                - USER_GID=1000
+                - GITEA__database__DB_TYPE=mysql
+                - GITEA__database__HOST=db:3306
+                - GITEA__database__NAME=gitea
+                - GITEA__database__USER=gitea
+                - GITEA__database__PASSWD=gitea
+              restart: always
+              networks:
+                - gitea
+              volumes:
+                - ./gitea:/data
+                - /etc/timezone:/etc/timezone:ro
+                - /etc/localtime:/etc/localtime:ro
+              ports:
+                - "3000:3000"
+                - "222:22"
+              depends_on:
+                - db
+
+            db:
+              image: mysql:8
+              restart: always
+              environment:
+                - MYSQL_ROOT_PASSWORD=gitea
+                - MYSQL_USER=gitea
+                - MYSQL_PASSWORD=gitea
+                - MYSQL_DATABASE=gitea
+              networks:
+                - gitea
+              volumes:
+                - ./mysql:/var/lib/mysql
+
+    - name: start gitea
+      command: docker-compose -f /root/gitea/docker-compose-gitea.yaml up
+          
+        
