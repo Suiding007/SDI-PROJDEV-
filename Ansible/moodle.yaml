@@ -2,6 +2,9 @@
 - name: Install Moodle and configure the environment 
   hosts: localhost
   become: true
+  vars:
+    localip: "192.168.109.146" # The local IP of de VM
+
   tasks:
     - name: Install software-properties-common
       apt:
@@ -85,13 +88,13 @@
     - name: Set permissions for config.php
       ansible.builtin.shell: sudo chmod -R 0755 /var/www/html/moodle
 
+    - name: Run the MySQL setup script
+      script: bash/mysql.sh
+
     - name: Restart MySQL service
       service:
         name: mysql
         state: restarted
-
-    - name: Run the MySQL setup script
-      script: bash/mysql.sh
 
     - name: Create Moodle config.php file
       copy:
@@ -117,7 +120,7 @@
             'dbcollation' => 'utf8mb4_unicode_ci',
           );
 
-          $CFG->wwwroot   = 'http://192.168.109.146/moodle';
+          $CFG->wwwroot   = 'http://{{ localip }}/moodle';
           $CFG->dataroot  = '/var/moodledata';
           $CFG->admin     = 'admin';
 
