@@ -1,0 +1,66 @@
+---
+  - name: Configure dns server 2
+    hosts: server2
+    become: True
+    vars:
+      dns1: 10.24.104.11
+      dns2: 10.24.104.12
+      forward: 1.1.1.1
+      domain: ijsselstreek-university.nl
+      subnet: "10.24.104.0/24"
+    tasks:
+      
+      - name: "install bind9"
+        apt:
+          pkg:
+            - bind9 
+            - bind9utils
+            - bind9-doc
+          update_cache: yes
+          state: present
+
+      - name: Change named.conf.local file
+        copy:
+          dest: /etc/bind/named.conf.local
+          content:  |
+            zone "{{ domain }}" {
+                type secondary;
+                file "db.{{ domain}}";
+                masters { {{ dns1 }}; };
+            };
+  
+            zone "27.24.10.in-addr.arpa" {
+                type secondary;
+                file "db.reverse";
+                masters { {{ dns1 }}; };
+            };
+  
+      - name: Change named.conf.option file
+        copy:
+          dest: /etc/bind/named.conf.options
+          content:  |
+            acl "trusted" {
+                    {{ subnet }};   
+            };
+  
+            options {
+                    directory "/var/cache/bind";
+  
+                    recursion yes;
+                    allow-recursion { trusted; };
+                    listen-on { {{ dns2 }}; };      
+                    allow-transfer { none; };          
+  
+  
+                    forwarders {
+                            {{ forward }};
+                    };
+  
+                    dnssec-validation auto;
+                    listen-on-v6 { any; };
+            };
+  
+      - name: Reload bind9 services
+        service:
+          name: bind9
+          state: reloaded

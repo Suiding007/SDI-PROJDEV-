@@ -79,6 +79,6 @@
                 - ./mysql:/var/lib/mysql
 
     - name: start gitea
-      command: docker-compose -f /root/gitea/docker-compose-gitea.yaml up
+      command: docker-compose -f /root/gitea/docker-compose-gitea.yaml up -d
           
         
