@@ -31,4 +31,15 @@
         state: present
         update_cache: yes
 
-#sudo dpkg-reconfigure slapd
+    - name: Reconfiguring slapd
+      ansible.builtin.shell: |
+        sudo debconf-set-selections <<< "slapd slapd/password1 password Welkom123"
+        sudo debconf-set-selections <<< "slapd slapd/password2 password Welkom123"
+        sudo debconf-set-selections <<< "slapd slapd/domain string radius.ijsselstreek-university.nl"
+        sudo debconf-set-selections <<< "slapd shared/organization string Hanze"
+        sudo debconf-set-selections <<< "slapd slapd/move_old_database boolean true"
+        sudo debconf-set-selections <<< "slapd slapd/no_configuration boolean false"
+        sudo debconf-set-selections <<< "slapd slapd/purge_database boolean false"
+        sudo dpkg-reconfigure slapd --frontend noninteractive
+      args:
+        executable: /bin/bash

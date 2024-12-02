@@ -4,7 +4,6 @@
   become: true
   vars:
     radius_server: 10.24.32.190
-    ldap_server: '10.24.32.191'
 
   tasks:
   - name: upgrade & update apt packages
@@ -29,19 +28,19 @@
     become_user: root
 
   - name: Overwrite ldap
-    template:
+    copy:
       src: /etc/ansible/ansible_inv/templates/ldap
       dest: /etc/freeradius/3.0/mods-available/ldap
     become_user: root
 
   - name: Overwrite default
-    template:
+    copy:
       src: /etc/ansible/ansible_inv/templates/default
       dest: /etc/freeradius/3.0/sites-available/default
     become_user: root
 
   - name: Overwrite inner-tunnel
-    template:
+    copy:
       src: /etc/ansible/ansible_inv/templates/inner-tunnel
       dest: /etc/freeradius/3.0/sites-available/inner-tunnel
     become_user: root
