@@ -8,6 +8,7 @@
       forward: 1.1.1.1
       domain: ijsselstreek-university.nl
       subnet: "10.0.8.0/24"
+      subnet2: "172.16.10.0/24"
     tasks:
       
       - name: "install bind9"
@@ -40,7 +41,8 @@
           dest: /etc/bind/named.conf.options
           content:  |
             acl "trusted" {
-                    {{ subnet }};   
+                    {{ subnet }};  
+                    {{ subnet2 }}; 
             };
   
             options {
