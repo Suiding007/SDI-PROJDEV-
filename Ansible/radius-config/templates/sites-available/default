@@ -284,14 +284,21 @@ listen {
 authorize {
 
     ldap
-    if (LDAP-Group == "dop") {
+    if (LDAP-Group == "staff") {
         update reply {
             Tunnel-Type := 13
             Tunnel-Medium-Type := 6
-            Tunnel-Private-Group-Id := 20
+            Tunnel-Private-Group-Id := 2
         }
     }
-   
+    
+	if (LDAP-Group == "students") {
+        update reply {
+            Tunnel-Type := 13
+            Tunnel-Medium-Type := 6
+            Tunnel-Private-Group-Id := 3
+        }
+    }
 
 
 
