@@ -1,0 +1,53 @@
+---
+- name: Setup SNMPv3 with authPriv on Ubuntu
+  hosts: testmach2
+  become: yes
+
+  vars:
+    snmpv3_user: "snmpv3user"
+    auth_password: "authPassword"
+    priv_password: "privPassword"
+    machine_function: "josbosdetector"
+
+  tasks:
+    - name: Update apt package index
+      apt:
+        update_cache: yes
+
+    - name: Install SNMP and SNMP daemon
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - snmp
+        - snmpd
+
+    - name: Overwrite snmpd.conf with new configuration from template
+      template:
+        src: templates/snmpd.conf.j2
+        dest: /etc/snmp/snmpd.conf
+        backup: yes
+
+    - name: Download the distro script
+      command: curl -o /usr/bin/distro https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro
+
+    - name: Make the distro script executable
+      file:
+        path: /usr/bin/distro
+        mode: '0755'
+        state: file
+
+    - name: Restart SNMP daemon
+      systemd:
+        name: snmpd
+        state: restarted
+        enabled: yes
+
+    - name: Test SNMPv3 configuration
+      command: snmpwalk -v3 -u {{ snmpv3_user }} -a SHA -A "{{ auth_password }}" -x AES -X "{{ priv_password }}" -l authPriv localhost
+      register: snmpwalk_output
+      ignore_errors: yes
+
+    - name: Display SNMPv3 test result
+      debug:
+        msg: "{{ snmpwalk_output.stdout }}"
