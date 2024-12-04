@@ -1,0 +1,218 @@
+---
+- name: Install and configure LibreNMS
+  hosts: testmach1
+  become: yes
+
+  vars:
+    librenms_db_password: "librenms"
+    librenms_sql_user_name: "librenms"
+    librenms_dbroot_password: "librenms"
+    librenms_sql_db_name: "librenms"
+    librenms_domain: "example.com"
+    librenms_timezone: "Europe/Amsterdam"
+    librenms_community: "public"
+    hostname: "example.com"
+
+  tasks:
+    - name: Set the system timezone to Europe/Amsterdam
+      command: timedatectl set-timezone Europe/Amsterdam
+
+    - name: Update the package list
+      apt:
+        update_cache: yes
+
+    - name: Upgrade installed packages
+      apt:
+        upgrade: dist
+        update_cache: yes
+
+    - name: Install required dependencies
+      apt:
+        name:
+          - acl
+          - composer
+          - python3-memcache
+          - curl
+          - fping
+          - git
+          - graphviz
+          - imagemagick
+          - mariadb-client
+          - mariadb-server
+          - mtr-tiny
+          - nginx-full
+          - nmap
+          - php8.3-cli
+          - php8.3-curl
+          - php8.3-fpm
+          - php8.3-gd
+          - php8.3-gmp
+          - php8.3-mbstring
+          - php8.3-mysql
+          - php8.3-snmp
+          - php8.3-xml
+          - php8.3-zip
+          - python3-pymysql
+          - python3-psutil
+          - python3-command-runner
+          - python3-dotenv
+          - python3-redis
+          - python3-setuptools
+          - python3-systemd
+          - python3-pip
+          - python3-mysqldb
+          - rrdtool
+          - snmp
+          - snmpd
+          - whois
+          - unzip
+          - traceroute
+        state: present
+
+    - name: Download and clone LibreNMS
+      git:
+        repo: 'https://github.com/librenms/librenms.git'
+        dest: /opt/librenms
+
+    - name: Create LibreNMS user
+      user:
+        name: librenms
+        system: yes
+        home: /opt/librenms
+        shell: /bin/bash
+
+    - name: Set owner for LibreNMS directories
+      file:
+        path: /opt/librenms
+        owner: librenms
+        group: librenms
+        recurse: yes
+
+    - name: Set permissions for LibreNMS root directory
+      file:
+        path: /opt/librenms
+        mode: '0771'
+
+    - name: Set default ACL for LibreNMS directories
+      command: setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
+
+    - name: Set ACL recursively for LibreNMS directories
+      command: setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
+
+    - name: Install PHP dependencies
+      command: su librenms -c '/opt/librenms/scripts/composer_wrapper.php install --no-dev'
+
+    - name: Setting authentication parameters for wordpress DB
+      community.mysql.mysql_user:
+        name: root
+        password: "{{ librenms_dbroot_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      tags: [database]
+      ignore_errors: true
+
+    - name: Removing anonymous (if present) users from SQL DB
+      community.mysql.mysql_user:
+        name: ''
+        host_all: true
+        state: absent
+        login_user: root
+        login_password: "{{ librenms_dbroot_password }}"
+      tags: [database]
+
+    - name: Cleaning test DB (if present) from MySQL
+      community.mysql.mysql_user:
+        name: test
+        state: absent
+        login_user: root
+        login_password: "{{ librenms_dbroot_password }}"
+      tags: [database]
+
+    - name: Creating wordpress database
+      community.mysql.mysql_db:
+        name: "{{ librenms_sql_db_name }}"
+        state: present
+        login_user: root
+        login_password: "{{ librenms_dbroot_password }}"
+      tags: [database]
+
+    - name: Creating wordpress user in MySQL
+      community.mysql.mysql_user:
+        name: "{{ librenms_sql_user_name }}"
+        password: "{{ librenms_db_password }}"
+        priv: "{{ librenms_sql_db_name }}.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ librenms_dbroot_password }}"
+      tags: [database]
+
+
+    - name: Add MariaDB configurations
+      template:
+        src: templates/mariadb.cnf.j2
+        dest: /etc/mysql/mariadb.conf.d/50-server.cnf
+
+    - name: Restart MariaDB
+      service:
+        name: mariadb
+        state: restarted
+        enabled: yes
+
+    - name: Configure PHP-FPM for LibreNMS
+      copy:
+        src: templates/fpm-librenms.conf.j2
+        dest: /etc/php/8.3/fpm/pool.d/librenms.conf
+
+    - name: set timezone in php FPM
+      copy:
+        src: templates/fpm-php.ini.j2
+        dest: /etc/php/8.3/fpm/php.ini
+
+    - name: set timezone in php FPM
+      copy:
+        src: templates/cli-php.ini.j2
+        dest: /etc/php/8.3/cli/php.ini
+
+    - name: Restart PHP-FPM
+      service:
+        name: php8.3-fpm
+        state: restarted
+
+    - name: Configure NGINX for LibreNMS
+      copy:
+        src: templates/nginx-librenms.conf.j2
+        dest: /etc/nginx/conf.d/librenms.conf
+
+    - name: Remove default NGINX site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Restart NGINX
+      service:
+        name: nginx
+        state: restarted
+
+
+    - name: Setting up dispatcher service RC - systemd
+      copy:
+        src: /opt/librenms/misc/librenms.service
+        dest: /etc/systemd/system/librenms.service
+        owner: root
+        group: root
+        mode: '0644'
+        remote_src: yes
+
+    - name: Enable and start librenms.service
+      systemd:
+        name: librenms.service
+        enabled: yes
+        state: started
+
+    - name: Verify the status of librenms.service
+      command: systemctl status librenms.service
+      register: service_status
+
+    - name: Display the status of librenms.service
+      debug:
+        msg: "{{ service_status.stdout }}"
+
