@@ -3,11 +3,11 @@
     hosts: server2
     become: True
     vars:
-      dns1: 10.24.104.11
-      dns2: 10.24.104.12
+      dns1: 10.0.8.11
+      dns2: 10.0.8.12
       forward: 1.1.1.1
       domain: ijsselstreek-university.nl
-      subnet: "10.24.104.0/24"
+      subnet: "10.0.8.0/24"
     tasks:
       
       - name: "install bind9"
