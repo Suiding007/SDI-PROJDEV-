@@ -1,0 +1,23 @@
+- name: Configureer DHCP server
+  hosts: server6
+  become: true
+
+  tasks:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: yes
+    
+    - name: Installeer isc-dhcp-server
+      apt:
+         name:
+            - isc-dhcp-server
+    
+    - name: Kopieer de DHCP config naar de remote hosts
+      copy:
+         src: ./dhcp_config/dhcpd.conf
+         dst: /etc/dhcp/dhcpd.conf
+    
+    - name: Restart de DHCP server
+      systemd:
+         name: isc-dhcp-server
+         state: restarted

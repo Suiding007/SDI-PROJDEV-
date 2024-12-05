@@ -1,0 +1,30 @@
+- name: Configureer mailserver
+  hosts: mailserver
+  become: true
+
+  tasks:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Upgrade de packages tot de latest version
+      ansible.builtin.apt:
+        upgrade: dist
+
+    - name: Download het installscript voor Stalwart
+      ansible.builtin.command:
+         cmd: curl --proto '=https' --tlsv1.2 -sSf https://get.stalw.art/install.sh -o install.sh
+      args:
+        chdir: /tmp
+
+    - name: Maak de directory /etc/stalwart
+      ansible.builtin.file:
+        path: /etc/stalwart
+        state: directory
+        mode: '0755'
+
+    - name: Voer install.sh uit
+      ansible.builtin.shell:
+        cmd: sudo sh /tmp/install.sh /etc/stalwart
+
+    ### TODO: Copy de nu werkende config
