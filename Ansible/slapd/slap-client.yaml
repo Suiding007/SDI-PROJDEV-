@@ -1,0 +1,45 @@
+- name: Install Apache, PHP, and LDAP packages
+  hosts: ldapc
+  become: true
+  tasks:
+
+    - name: Update de package cache
+      apt:
+        update_cache: yes
+  
+    - name: apt install dependencies
+      apt:
+        name: 
+          - libnss-ldapd
+          - libpam-ldapd
+          - ldap-utils
+        state: present
+    
+    - name: Configuring pam.d
+      lineinfile:
+        path: /etc/pam.d/common-session
+        line: session required pam_mkhomedir.so skel=/etc/skel umask=077
+        state: present
+
+    - name: Configuring /etc/nslcd.conf
+      copy:
+        src: /etc/ansible/ansible_inv/nslcd.conf
+        dest: /etc/nslcd.conf
+
+    - name: Configuring nsswitch.conf
+      copy:
+        src: /etc/ansible/ansible_inv/nsswitch.conf
+        dest: /etc/nsswitch.conf
+      
+    - name: Restart nscd service
+      systemd_service:
+        state: restarted
+        name: nscd
+      
+    - name: Restart nslcd service
+      systemd_service:
+        state: restarted
+        name: nslcd
+
+
+        
