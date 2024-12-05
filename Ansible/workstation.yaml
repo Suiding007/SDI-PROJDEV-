@@ -1,0 +1,21 @@
+- name: Configureer wekstations
+  hosts: server8
+  become: true
+
+  tasks:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Upgrade de packages tot de latest version
+      ansible.builtin.apt:
+        upgrade: dist
+
+    - name: Instaleer Firefox, Thunderbird, 7-Zip en LibreOffice
+      apt: 
+        pkg: 
+        - firefox
+        - thunderbird
+        - libreoffice
+        - p7zip-full
+        state: latest
