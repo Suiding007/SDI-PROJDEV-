@@ -26,5 +26,13 @@
     - name: Voer install.sh uit
       ansible.builtin.shell:
         cmd: sudo sh /tmp/install.sh /etc/stalwart
+    
+    - name: Plaats de config file
+      copy:
+         src: ./mailconfigs/config.toml
+         dst: /etc/stalwart/etc/config.toml
 
-    ### TODO: Copy de nu werkende config
+    - name: Restart de stallwart service
+      systemd:
+         name: stalwart-mail
+         state: restarted
