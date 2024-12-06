@@ -1,0 +1,22 @@
+- name: Configureer NFS client
+  hosts: workstation
+  become: true
+
+  tasks:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: yes
+    
+    - name: Installeer nfs-common
+      apt:
+         name:
+            - nsf-common
+
+    - name: Defineer de directory om te linken
+      lineinfile:
+         path: /etc/fstab
+         line: "10.0.8.15:/srv/home  /home  nfs  defaults  0  0"
+    
+    - name: Mount de share
+      shell:
+        cmd: sudo mount -a
