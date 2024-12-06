@@ -7,8 +7,10 @@
       dns2: 10.0.8.12
       forward: 1.1.1.1
       domain: ijsselstreek-university.nl
+      domain2: ijsselstreek.local
       subnet: "10.0.8.0/24"
       subnet2: "172.16.10.0/24"
+      subnet3: "172.16.11.0/24"
     tasks:
       
       - name: "install bind9"
@@ -34,6 +36,7 @@
           state: touch
         loop:
           - /etc/bind/forward/db.{{ domain }}
+          - /etc/bind/forward/db.{{ domain2 }}
           - /etc/bind/reverse/db.reverse
   
       - name: Change named.conf.option file
@@ -43,6 +46,7 @@
             acl "trusted" {
                 {{ subnet }};
                 {{ subnet2 }};
+                {{ subnet3 }};
             };
   
             options {
@@ -101,6 +105,10 @@
             ; records
             @                 IN      A           {{ dns1 }}
             @                 IN      A           {{ dns2 }}
+            ldap              IN      A           10.0.8.11
+            librenms          IN      A           10.0.8.13
+            moodle            IN      A           10.0.8.14
+            mail              IN      A           10.0.8.17
   
   
       - name: Add content to file in Reverse folder
@@ -123,6 +131,31 @@
             ; PTR records
             70.27   IN      PTR     ns1.{{ domain }}.
             71.27   IN      PTR     ns2.{{ domain}}.
+
+      - name: Add content to file in Forward folder
+        copy:
+          dest: /etc/bind/forward/db.{{ domain2 }}
+          content:  |
+            $TTL    604800
+            @       IN      SOA     ijsselstreek.local. admin.ijsselstreek.local. (
+                                    2024120501 ; Serial
+                                    604800     ; Refresh
+                                    86400      ; Retry
+                                    2419200    ; Expire
+                                    604800 )   ; Negative Cache TTL
+
+            ; Name server records
+            @        IN      NS      ldns1.ijsselstreek.local.
+            @        IN      NS      ldns2.ijsselstreek.local.
+
+            ; Name server A records
+            ldns1     IN      A       10.0.8.11
+            ldns2     IN      A       10.0.8.12
+
+            ; A record for the domain
+            @                               IN      A       10.0.8.11
+            CISCO-CAPWAP-CONTROLLER         IN      A       10.0.0.2
+            
             
       - name: Reload bind9 services
         service:

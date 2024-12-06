@@ -7,8 +7,10 @@
       dns2: 10.0.8.12
       forward: 1.1.1.1
       domain: ijsselstreek-university.nl
+      domain2: ijsselstreek.local
       subnet: "10.0.8.0/24"
       subnet2: "172.16.10.0/24"
+      subnet3: "172.16.11.0/24"
     tasks:
       
       - name: "install bind9"
@@ -35,6 +37,14 @@
                 file "db.reverse";
                 masters { {{ dns1 }}; };
             };
+
+
+            zone "ijsselstreek.local"{
+                    type primary;
+                    file "{{ domain2 }}";
+                    masters { {{ dns1 }} };
+            };
+            
   
       - name: Change named.conf.option file
         copy:
@@ -43,6 +53,7 @@
             acl "trusted" {
                     {{ subnet }};  
                     {{ subnet2 }}; 
+                    {{ subnet3 }};
             };
   
             options {
