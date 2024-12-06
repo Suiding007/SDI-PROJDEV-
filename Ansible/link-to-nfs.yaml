@@ -10,7 +10,7 @@
     - name: Installeer nfs-common
       apt:
          name:
-            - nsf-common
+            - nfs-common
 
     - name: Defineer de directory om te linken
       lineinfile:
