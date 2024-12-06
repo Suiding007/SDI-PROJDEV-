@@ -1,11 +1,14 @@
 ---
 - name: Configure Rsyslog server
-  hosts: localhost
+  hosts: server3
   become: yes
   tasks:
 
-    - name: Folder for saving logs
-      ansible.builtin.shell: sudo mkdir /var/log/hosts/rsyslog
+    - name: Create folder for saving logs
+      ansible.builtin.file:
+        path: /var/log/hosts/rsyslog
+        state: directory
+        mode: '0777'
 
     - name: Permissions folderlogs
       ansible.builtin.shell: sudo chmod -R 777 /var/log/hosts/rsyslog
@@ -91,17 +94,13 @@
           endscript
           }
 
-    - name: Add cron job to run logrotate every hour
+    - name: Add cron job to run logrotate every 30 min
       cron:
-        name: "Run logrotate every hour"
-        minute: "*"
-        hour: "2"
+        name: "Run logrotate every 30 min"
+        minute: "*/30"
+        hour: "*"
         day: "*"
         month: "*"
         weekday: "*"
         job: "/usr/sbin/logrotate /etc/logrotate.conf"
         state: present
-
-
-
-
