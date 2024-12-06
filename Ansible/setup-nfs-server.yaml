@@ -1,0 +1,30 @@
+- name: Configureer NFS server
+  hosts: server5
+  become: true
+
+  tasks:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: yes
+    
+    - name: Installeer nfs-kernel-server
+      apt:
+         name:
+            - nsf-kernel-server
+    
+    - name: Maak srv/home folder voor de opslag van alle home directories
+      file:
+         path: /srv/home
+         state: directory
+         mode: '0755'
+
+    - name: Defineer de directory om te exporten
+      lineinfile:
+         path: /etc/exports
+         line: " /srv/home 10.0.8.0/24(rw,no_root_squash)"
+    
+    - name: Restart de NFS server
+      systemd:
+        name: nfs-server
+        state: restarted
+
