@@ -1,13 +1,13 @@
 ---
 - name: Configure Rsyslog client
-  hosts: localhost
+  hosts: rsyslog
   become: yes
   vars:
     remoteip: "10.0.8.13" # Remote ip of the rsyslog server 
   tasks:
     - name: Rsyslog configuration
       copy:
-        dest: /etc/rsyslog.d/50-default.conf 
+        dest: /etc/rsyslog.d/50-default.conf
         content: |
           #  Default rules for rsyslog.
           #
@@ -20,13 +20,13 @@
           # First some standard log files.  Log by facility.
           #
           auth,authpriv.*                 /var/log/auth.log
-          *.*;auth,authpriv.none          -/var/log/syslog
+          #*.*;auth,authpriv.none          -/var/log/syslog
           #cron.*                         /var/log/cron.log
-          #daemon.*                       -/var/log/daemon.log
+          daemon.*                       -/var/log/daemon.log
           kern.*                          -/var/log/kern.log
           #lpr.*                          -/var/log/lpr.log
           mail.*                          -/var/log/mail.log
-          #user.*                         -/var/log/user.log
+          user.*                         -/var/log/user.log
 
           #
           # Logging for the mail system.  Split it up so that
@@ -60,6 +60,6 @@
           #       news.=crit;news.=err;news.=notice;\
           #       *.=debug;*.=info;\
           #       *.=notice;*.=warn       /dev/tty8
-    
+
     - name: Allow restart rsyslog.service
       ansible.builtin.shell: sudo systemctl restart rsyslog.service
