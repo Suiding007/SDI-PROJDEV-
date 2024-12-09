@@ -1,0 +1,21 @@
+---
+- name: Create NTP server
+  hosts: server2
+  become: True
+  tasks:
+    - name: apt update
+      apt:
+        update_cache: yes
+    
+    - name: Install chrony package
+      apt:
+        name: chrony
+        state: present
+
+    - name: change configuration file
+      template:
+        src: /templates/chrony-server.conf
+        dest: /etc/chrony/chrony.conf
+
+    - name: restart chrony
+      ansible.builtin.shell: systemctl restart chrony.service
