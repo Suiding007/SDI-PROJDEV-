@@ -12,6 +12,9 @@
       subnet2: "172.16.10.0/24"
       subnet3: "172.16.11.0/24"
       subnet4: "10.0.0.0/24"
+      subnet5: "172.16.8.0/24"
+      subnet6: "172.16.4.0/24"
+
     tasks:
       
       - name: "install bind9"
@@ -56,6 +59,8 @@
                     {{ subnet2 }}; 
                     {{ subnet3 }};
                     {{ subnet4 }};
+                    {{ subnet5 }};
+                    {{ subnet6 }};
             };
   
             options {
