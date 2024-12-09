@@ -1,19 +1,19 @@
 ---
 - name: Install NTP chrony server on client
-  hosts: 
+  hosts:
   become: True
   vars:
-    server: ntp.ijsselstreek-university.nl
+    server: 10.0.8.12
   tasks:
     - name: apt update
       apt:
         update_cache: yes
-    
+
     - name: Install chrony package
       apt:
         name: chrony
         state: present
-        
+
     - name: change configuration file
       template:
         src: /templates/chrony-client.conf
