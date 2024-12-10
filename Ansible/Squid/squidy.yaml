@@ -1,0 +1,66 @@
+--- 
+  - name: Installing & configuring Squid
+    hosts: server9
+    become: true
+    tasks:
+    - name: upgrade & update apt packages
+      apt:
+        upgrade: true
+        update_cache: true
+      
+    - name: Install squid
+      apt:
+        name: squid
+        state: present
+  
+    - name: start squid service
+      systemd_service:
+        state: started
+        name: squid
+  
+    - name: enable squid service
+      systemd_service:
+        name: squid
+        enabled: true
+  
+    - name: create block.txt
+      file:
+        path: /etc/squid/block.txt
+        state: touch
+  
+    - name: create network.txt
+      file:
+        path: /etc/squid/network.txt
+        state: touch
+  
+    - name: copy content to file block.txt
+      copy:
+        dest: /etc/squid/block.txt
+        content: |
+          .facebook.com
+          .youtube.com
+  
+    - name: copy content to file block.txt
+      copy:
+        dest: /etc/squid/network.txt
+        content: |
+          10.0.8.0/24
+  
+    - name: Configure squid -- /etc/squid/squid.conf
+      lineinfile:
+        path: /etc/squid/squid.conf
+        line: | 
+          dns_nameservers 10.0.8.11 10.0.8.12
+  
+          acl block dstdomain "/etc/squid/block.txt" 
+          http_access deny block
+  
+          acl network src "/etc/squid/network.txt"
+          http_access allow network
+          
+  
+    - name: Restart squid -- configurations
+      ansible.builtin.systemd_service:
+        name: squid
+        state: restarted
+        daemon_reload: true
