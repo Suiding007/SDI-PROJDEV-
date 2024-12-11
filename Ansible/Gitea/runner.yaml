@@ -1,0 +1,55 @@
+---
+- name: add a action runner to gitea
+  hosts: server9
+  vars:
+    gitea_url: http://192.168.189.153:3000/
+    regis_key: 2gowADC2q1UyKYeAHvLXZQaMqYmwhm271jUTZcRa
+  become: true
+  tasks:
+    - name: install docker
+      apt:
+        pkg:
+          - docker.io
+          - docker-compose
+        state: present
+        update_cache: yes
+  
+    - name: create folder for action runner files
+      file:
+        path: /runner
+        state: directory
+        mode: '777'
+
+    - name: create docker-compose file in runner directory
+      file:
+        path: /runner/docker-compose-runner.yaml
+        state: touch
+        
+    - name: add acton runner
+      copy: 
+        dest: /runner/docker-compose-runner.yaml
+        content: | 
+            version: "3.8"
+            services:
+              runner:
+                image: gitea/act_runner:latest
+                environment:
+                  CONFIG_FILE: /config.yaml
+                  GITEA_INSTANCE_URL: "{{ gitea_url }}"
+                  GITEA_RUNNER_REGISTRATION_TOKEN: "{{ regis_key }}"
+                  GITEA_RUNNER_NAME: "runner"
+                  GITEA_RUNNER_LABELS: "runner"
+                volumes:
+                  - ./config.yaml:/config.yaml
+                  - ./data:/data
+                  - /var/run/docker.sock:/var/run/docker.sock
+
+    - name: generate-config file
+      shell: sudo docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
+      args:
+        chdir: /runner
+
+    - name: start gitea runner
+      command: sudo docker-compose -f /runner/docker-compose-runner.yaml up -d      
+
+          
