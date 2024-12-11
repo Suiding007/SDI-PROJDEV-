@@ -1,21 +1,41 @@
 - name: Configureer wekstations
-  hosts: server8
+  hosts: workstations
   become: true
 
   tasks:
-    - name: Update package cache
-      ansible.builtin.apt:
-        update_cache: yes
-
     - name: Upgrade de packages tot de latest version
       ansible.builtin.apt:
         upgrade: dist
 
-    - name: Instaleer Firefox, Thunderbird, 7-Zip en LibreOffice
+    - name: Thunderbird, 7-Zip, LibreOffice en clamav
       apt: 
         pkg: 
-        - firefox
         - thunderbird
         - libreoffice
         - p7zip-full
+        - clamav
+        - clamav-daemon
         state: latest
+
+    - name: Restart de clamav service
+      systemd:
+         name: clamav-daemon
+         enabled: yes
+         state: started
+
+    - name: Plaats de proxy config in de profile.d directory en set perms
+      copy:
+         src: ./squid/init_proxy.sh
+         dest: /etc/profile.d/init_proxy.sh
+         mode: a+x
+    
+    - name: Pas userlist setting aan in gdm3 config
+      replace:
+         dest: /etc/gdm3/greeter.dconf-defaults
+         regexp: '^#disable-user-list=true'
+         replace: 'disable-user-list=true'
+
+    - name: Voeg exception toe voor APT proxy
+      copy:
+        src: ./squid/95proxy.conf
+        dest: /etc/apt/apt.conf.d/95proxy.conf

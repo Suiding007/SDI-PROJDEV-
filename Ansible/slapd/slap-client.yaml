@@ -1,20 +1,19 @@
-- name: Install Apache, PHP, and LDAP packages
-  hosts: ldapc
+- name: Configure LDAP client
+  hosts: workstation
   become: true
   tasks:
-
     - name: Update de package cache
       apt:
         update_cache: yes
-  
+
     - name: apt install dependencies
       apt:
-        name: 
+        name:
           - libnss-ldapd
           - libpam-ldapd
           - ldap-utils
         state: present
-    
+
     - name: Configuring pam.d
       lineinfile:
         path: /etc/pam.d/common-session
@@ -23,23 +22,20 @@
 
     - name: Configuring /etc/nslcd.conf
       copy:
-        src: /etc/ansible/ansible_inv/nslcd.conf
+        src: ./slapd-config/nslcd.conf
         dest: /etc/nslcd.conf
 
     - name: Configuring nsswitch.conf
       copy:
-        src: /etc/ansible/ansible_inv/nsswitch.conf
+        src: ./slapd-config/nsswitch.conf
         dest: /etc/nsswitch.conf
-      
+
     - name: Restart nscd service
       systemd_service:
         state: restarted
         name: nscd
-      
+
     - name: Restart nslcd service
       systemd_service:
         state: restarted
         name: nslcd
-
-
-        
