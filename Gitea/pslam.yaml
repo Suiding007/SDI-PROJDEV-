@@ -1,0 +1,28 @@
+name: Security Scan with Trivy
+
+on:
+  push:
+    branches:
+      - test
+
+jobs:
+  security_scan:
+    runs-on: ubuntu-latest 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3 
+
+      - name: php composer install
+        run: |
+            sudo apt update
+            sudo apt install php-cli unzip curl -y
+            sudo apt install curl -y
+            curl -sS https://getcomposer.org/installer | php
+            sudo mv composer.phar /usr/local/bin/composer
+            composer --version            
+
+      - name: pslam 
+        run: |
+            composer require --dev vimeo/psalm
+            ./vendor/bin/psalm --init
+            ./vendor/bin/psalm
