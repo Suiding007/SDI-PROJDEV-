@@ -1,0 +1,49 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - test
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04  
+    steps:
+      - name: Install Nodejs and PHP
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt update
+          apt-get install curl -y
+          apt-get install php php-curl -y
+          curl -sS https://getcomposer.org/installer -o composer-setup.php
+          php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+          composer self-update
+          apt-get install git -y
+          composer install --prefer-dist -y
+
+      - name: Install PHPStan
+        run: composer require --dev phpstan/phpstan
+
+      - name: Install Psalm
+        run: composer require --dev vimeo/psalm
+
+      - name: Install PHP Malware Scanner
+        run: git clone https://github.com/marcocesarato/PHP-Antimalware-Scanner.git
+
+      - name: Run PHP Malware Scanner
+        run: php ./PHP-Antimalware-Scanner/antimalware.php --path /workspace/gitea/moodles
+
+      - name: Run Psalm
+        run: vendor/bin/psalm --root=/workspace/gitea/moodles --show-info=true
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse /workspace/gitea/moodles --level=max --memory-limit=1G
+      
+      - name: Check PHP Dependencies for Vulnerabilities
+        working-directory: /workspace/gitea/moodles
+        run: composer security:check
+
+
+
