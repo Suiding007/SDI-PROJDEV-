@@ -4,8 +4,8 @@ After=network.target
  
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/ip link set dev ens33 promisc on
-ExecStart=/usr/sbin/ethtool -K ens33 gro off lro off
+ExecStart=/usr/sbin/ip link set dev ens18 promisc on
+ExecStart=/usr/sbin/ethtool -K ens18 gro off lro off
 TimeoutStartSec=0
 RemainAfterExit=yes
  
