@@ -1,16 +1,17 @@
 # made with and inspired by https://korodes.com/en/ubuntu24_en_10/
 ---
-- name:
-  hosts:
-  become:
+- name: Snort3
+  hosts: test
+  become: True
+  become_user: root
   vars:
-    username: Snorter
+    username: snorter
 
   tasks:
     - name: apt update
       apt:
         update_cache: yes
-    
+
     - name: install packages
       apt:
         name:
@@ -42,19 +43,11 @@
           - libfl-dev
           - git
         state: present
-    
-    - name: Clone DAQ library and build
-      ansible.builtin.shell: |
-        cd /home/{{ username }}/libdaq
-        ./bootstrap
-        ./configure
-        make
-        make install
-      args:
-        executable: /bin/bash
 
     - name: Clone DAQ library and build
       ansible.builtin.shell: |
+        cd /home/{{ username }}
+        git clone https://github.com/snort3/libdaq.git
         cd /home/{{ username }}/libdaq
         ./bootstrap
         ./configure
@@ -74,7 +67,7 @@
         make install
       args:
         executable: /bin/bash
-      
+
     - name: download snort3
       ansible.builtin.shell: |
         cd /home/{{username}}
@@ -87,27 +80,30 @@
 
     - name: create configuration files snort3
       ansible.builtin.shell: |
+        cd /home/{{username}}/snort3-master
         ./configure_cmake.sh --prefix=/usr/local --enable-tcmalloc
       args:
         executable: /bin/bash
 
     - name: install snort3
       ansible.builtin.shell: |
+        cd /home/{{username}}/snort3-master
         cd build
         make
-        install
+        make install
         ldconfig
       args:
         executable: /bin/bash
 
     - name: Create systemd service snort3
       template:
-        src: /snort_template/snort3-nic.service
+        src: /home/ansible-master/ansible/templates/snort_templates/snort3-nic.service/snort3-nic.service
         dest: /etc/systemd/system/snort3-nic.service
-      
+
     - name: enable systemd service
       ansible.builtin.shell: |
         systemctl start snort3-nic.service
+        systemctl daemon-reload
         systemctl enable snort3-nic.service
       args:
         executable: /bin/bash
