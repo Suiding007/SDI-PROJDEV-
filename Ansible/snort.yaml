@@ -1,0 +1,109 @@
+# made with and inspired by https://korodes.com/en/ubuntu24_en_10/
+---
+- name: Snort3
+  hosts: test
+  become: True
+  become_user: root
+  vars:
+    username: snorter
+
+  tasks:
+    - name: apt update
+      apt:
+        update_cache: yes
+
+    - name: install packages
+      apt:
+        name:
+          - build-essential
+          - libpcap-dev
+          - libpcre3-dev
+          - libnet1-dev
+          - zlib1g-dev
+          - luajit
+          - hwloc
+          - libdumbnet-dev
+          - bison
+          - flex
+          - liblzma-dev
+          - openssl
+          - libssl-dev
+          - pkg-config
+          - libhwloc-dev
+          - cmake
+          - cpputest
+          - libsqlite3-dev
+          - uuid-dev
+          - libcmocka-dev
+          - libnetfilter-queue-dev
+          - libmnl-dev
+          - autotools-dev
+          - libluajit-5.1-dev
+          - libunwind-dev
+          - libfl-dev
+          - git
+        state: present
+
+    - name: Clone DAQ library and build
+      ansible.builtin.shell: |
+        cd /home/{{ username }}
+        git clone https://github.com/snort3/libdaq.git
+        cd /home/{{ username }}/libdaq
+        ./bootstrap
+        ./configure
+        make
+        make install
+      args:
+        executable: /bin/bash
+
+    - name: Install Gperftools
+      ansible.builtin.shell: |
+        cd /home/{{ username }}
+        wget https://github.com/gperftools/gperftools/releases/download/gperftools-2.13/gperftools-2.13.tar.gz
+        tar xzf gperftools-2.13.tar.gz
+        cd gperftools-2.13
+        ./configure
+        make
+        make install
+      args:
+        executable: /bin/bash
+
+    - name: download snort3
+      ansible.builtin.shell: |
+        cd /home/{{username}}
+        wget https://github.com/snort3/snort3/archive/refs/heads/master.zip
+        apt install unzip
+        unzip master.zip
+        cd snort3-master
+      args:
+        executable: /bin/bash
+
+    - name: create configuration files snort3
+      ansible.builtin.shell: |
+        cd /home/{{username}}/snort3-master
+        ./configure_cmake.sh --prefix=/usr/local --enable-tcmalloc
+      args:
+        executable: /bin/bash
+
+    - name: install snort3
+      ansible.builtin.shell: |
+        cd /home/{{username}}/snort3-master
+        cd build
+        make
+        make install
+        ldconfig
+      args:
+        executable: /bin/bash
+
+    - name: Create systemd service snort3
+      template:
+        src: /home/ansible-master/ansible/templates/snort_templates/snort3-nic.service/snort3-nic.service
+        dest: /etc/systemd/system/snort3-nic.service
+
+    - name: enable systemd service
+      ansible.builtin.shell: |
+        systemctl start snort3-nic.service
+        systemctl daemon-reload
+        systemctl enable snort3-nic.service
+      args:
+        executable: /bin/bash

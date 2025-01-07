@@ -13,27 +13,17 @@
 
     - name: create folder for gitea files
       file:
-        path: /root/gitea
-        state: directory
-
-    - name: create folder for action runner files
-      file:
-        path: /root/runner
+        path: /gitea
         state: directory
 
     - name: create docker-compose file in gitea directory
       file:
-        path: /root/gitea/docker-compose-gitea.yaml
+        path: /gitea/docker-compose-gitea.yaml
         state: touch
     
-    - name: create docker-compose file in runner directory
-      file:
-        path: /root/runner/docker-compose-runner.yaml
-        state: touch
-        
     - name: add content to gitea compose
       copy:
-        dest: /root/gitea/docker-compose-gitea.yaml
+        dest: /gitea/docker-compose-gitea.yaml
         content: |
           version: "3"
           networks:
@@ -79,6 +69,6 @@
                 - ./mysql:/var/lib/mysql
 
     - name: start gitea
-      command: docker-compose -f /root/gitea/docker-compose-gitea.yaml up -d
+      command: docker-compose -f /gitea/docker-compose-gitea.yaml up -d
           
         

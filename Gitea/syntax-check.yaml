@@ -1,0 +1,29 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - test
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04  
+    steps:
+      - name: Install Nodejs and PHP
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt update
+          apt-get install nodejs -y
+          apt-get install npm -y   
+          apt-get install -y software-properties-common
+          add-apt-repository ppa:ondrej/php
+          apt update
+          apt-get install -y php8.4
+                    
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: PHP Syntax Check
+        run: find /workspace/gitea/moodles -type f -name "*.php" -exec php -l {} \;

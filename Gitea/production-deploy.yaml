@@ -1,0 +1,104 @@
+name: deploy to production server
+#testx
+on:
+  push:
+    branches:
+      - test
+
+jobs:
+  security_scan:
+    runs-on: ubuntu-latest 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: setup ssh
+        run: |
+            apt update
+            apt install sshpass -y
+                                                                
+      - name: gather server ssh pub-key
+        run: |
+            mkdir -p ~/.ssh
+            ssh-keyscan -H 10.0.8.100 >> ~/.ssh/known_hosts   
+            sshpass -p 'Welkom123'  ssh -tt -o StrictHostKeyChecking=no root@10.0.8.100 <<'ENDSSH'
+            DEBIAN_FRONTEND=noninteractive
+            apt update
+            add-apt-repository -y ppa:ondrej/php
+            apt update
+            apt install -y software-properties-common 
+            apt install -y php8.1 php8.1-pspell php8.1-curl php8.1-gd php8.1-intl php8.1-mysql php8.1-xml php8.1-xmlrpc php8.1-ldap php8.1-zip php8.1-soap php8.1-mbstring 
+
+            update-alternatives --set php /usr/bin/php8.1 
+            apt install apache2 mysql-client mysql-server -y
+            DEBIAN_FRONTEND=noninteractive apt install -y libapache2-mod-php8.1
+            sed -i 's/^\s*;\s*max_input_vars\s*=.*/max_input_vars = 5000/' /etc/php/8.1/apache2/php.ini
+            sed -i 's/^\s*;\s*max_input_vars\s*=.*/max_input_vars = 5000/' /etc/php/8.1/cli/php.ini
+
+            DEBIAN_FRONTEND=noninteractive apt install -y git
+
+            echo ###################clone###################################################
+            git clone http://10.0.8.19:3000/gitea/moodles.git
+            cp -a /root/moodles /var/www/html
+            mkdir /var/moodledata
+            chown -R www-data /var/moodledata
+            chmod -R 777 /var/moodledata
+            chmod -R 0755 /var/www/html/moodles
+
+            echo '#####Mysql#####'
+            mysql -e "CREATE DATABASE moodle DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            mysql -e "create user 'pcgebruiker'@'localhost' IDENTIFIED BY 'Welkom123';"
+            mysql -e "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, CREATE TEMPORARY TABLES, DROP, INDEX, ALTER ON moodle.* TO 'pcgebruiker'@'localhost';"
+            mysql -e "FLUSH PRIVILEGES;"
+            systemctl restart mysql
+
+            echo '#####moodle config#####'
+            touch /var/www/html/moodles/config.php
+            tee /var/www/html/moodles/config.php << 'EOF'
+            <?php
+            unset($CFG);
+            global $CFG;
+            $CFG = new stdClass();
+
+            $CFG->dbtype    = 'mysqli';
+            $CFG->dblibrary = 'native';
+            $CFG->dbhost    = 'localhost';
+            $CFG->dbname    = 'moodle';
+            $CFG->dbuser    = 'pcgebruiker';
+            $CFG->dbpass    = 'Welkom123';
+            $CFG->prefix    = 'mdl_';
+            $CFG->dboptions = array (
+              'dbpersist' => 0,
+              'dbport' => '',
+              'dbsocket' => '',
+              'dbcollation' => 'utf8mb4_unicode_ci',
+            );
+
+            $CFG->wwwroot   = 'http://10.0.8.100/moodles';
+            $CFG->dataroot  = '/var/moodledata';
+            $CFG->admin     = 'admin';
+
+            $CFG->directorypermissions = 0777;
+
+            require_once(__DIR__ . '/lib/setup.php');
+            EOF
+
+
+            echo '#####apache2 config#####'
+            tee /etc/apache2/sites-available/000-default.conf << 'EOF'
+            <VirtualHost *:80>
+
+                  ServerAdmin webmaster@localhost
+                  DocumentRoot /var/www/html
+
+                  ErrorLog ${APACHE_LOG_DIR}/error.log
+                  CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+                  RedirectMatch "^/$" "/moodle" 
+
+            </VirtualHost>
+            EOF
+
+            systemctl restart apache2
+            php /var/www/html/moodles/admin/cli/install_database.php --adminuser=pcgebruiker --adminpass=Welkom123 --adminemail=testmail@test.nl --agree-license
+                        
