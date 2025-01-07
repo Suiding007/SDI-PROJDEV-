@@ -10,7 +10,7 @@
     - name: Installeer nfs-kernel-server
       apt:
          name:
-            - nsf-kernel-server
+            - nfs-kernel-server
     
     - name: Maak srv/home folder voor de opslag van alle home directories
       file:
