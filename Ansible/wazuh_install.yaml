@@ -1,0 +1,204 @@
+---
+- name: Wazuh installation
+  hosts: test
+  become: True
+  become_user: root
+  vars:
+    server_ip: 10.0.8.20
+    indexer_name: node-1
+    server_name: wazuh-1
+    dashboard_name: dashboard
+
+
+  tasks:
+    - name: apt update
+      apt:
+        update_cache: yes
+      
+    - name: download wazuh-certs-tool.sh
+      shell: |
+        curl -sO https://packages.wazuh.com/4.10/wazuh-certs-tool.sh
+      args:
+        executable: /bin/bash
+
+    - name: download config.yml
+      template:
+        src: /home/ansible-master/ansible/templates/wazuh/config.yml
+        dest: /home/waz/config.yml
+
+    - name: create certificates
+      shell: |
+        bash ./wazuh-certs-tool.sh -A4
+        tar -cvf ./wazuh-certificates.tar -C ./wazuh-certificates/ .
+        rm -rf ./wazuh-certificates
+      args:
+        executable: /bin/bash
+
+    - name: Install packages & add wazuh repo
+      shell: |
+        apt-get -y install debconf adduser procps
+
+        apt-get -y install gnupg apt-transport-https
+        curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import && chmod 644 /usr/share/keyrings/wazuh.gpg
+        echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" | tee -a /etc/apt/sources.list.d/wazuh.list
+        apt-get update
+      args:
+        executable: /bin/bash
+
+    - name: Install wazuh indexer
+      shell: |
+        apt-get -y install wazuh-indexer
+      args:
+        executable: /bin/bash
+
+    - name: change opensearch.yml config
+      template:
+        src: /home/ansible-master/ansible/templates/wazuh/opensearch.yml
+        dest: /etc/wazuh-indexer/opensearch.yml
+
+    - name: deploying certificates for indexer
+      shell: |
+        cd /home/waz/
+        NODE_NAME={{indexer_name}}
+        mkdir /etc/wazuh-indexer/certs
+        tar -xf ./wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./admin.pem ./admin-key.pem ./root-ca.pem
+        mv -n /etc/wazuh-indexer/certs/$NODE_NAME.pem /etc/wazuh-indexer/certs/indexer.pem
+        mv -n /etc/wazuh-indexer/certs/$NODE_NAME-key.pem /etc/wazuh-indexer/certs/indexer-key.pem
+        chmod 500 /etc/wazuh-indexer/certs
+        chmod 400 /etc/wazuh-indexer/certs/*
+        chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
+      args:
+        executable: /bin/bash
+
+    - name: start service
+      shell: |
+        systemctl daemon-reload
+        systemctl enable wazuh-indexer
+        systemctl start wazuh-indexer
+      args:
+        executable: /bin/bash
+  
+    - name: cluster initialization
+      shell: |
+        /usr/share/wazuh-indexer/bin/indexer-security-init.sh
+      args:
+        executable: /bin/bash
+
+    - name: install Wazuh manager
+      shell: |
+        apt-get -y install wazuh-manager
+        apt-get -y install filebeat
+      args:
+        executable: /bin/bash
+    
+    - name: filebeat config
+      template:
+        src: /home/ansible-master/ansible/templates/wazuh/filebeat.yml
+        dest: /etc/filebeat/filebeat.yml
+
+    - name: filebeat authentication credentials
+      shell: |
+        filebeat keystore create
+        echo admin | filebeat keystore add username --stdin --force
+        echo Dvntr@444 | filebeat keystore add password --stdin --force
+      args:
+        executable: /bin/bash
+
+    - name: alert templates for wazuh
+      shell: |
+        curl -so /etc/filebeat/wazuh-template.json https://raw.githubusercontent.com/wazuh/wazuh/v4.10.0/extensions/elasticsearch/7.x/wazuh-template.json
+        chmod go+r /etc/filebeat/wazuh-template.json
+      args:
+        executable: /bin/bash
+
+    - name: install wazuh module for filebeat
+      shell: |
+        curl -s https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-0.4.tar.gz | tar -xvz -C /usr/share/filebeat/module
+      args:
+        executable: /bin/bash
+
+    - name: deploying certificates for server
+      shell: |
+        cd /home/waz/
+        NODE_NAME={{server_name}}
+        mkdir /etc/filebeat/certs
+        tar -xf ./wazuh-certificates.tar -C /etc/filebeat/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./root-ca.pem
+        mv -n /etc/filebeat/certs/$NODE_NAME.pem /etc/filebeat/certs/filebeat.pem
+        mv -n /etc/filebeat/certs/$NODE_NAME-key.pem /etc/filebeat/certs/filebeat-key.pem
+        chmod 500 /etc/filebeat/certs
+        chmod 400 /etc/filebeat/certs/*
+        chown -R root:root /etc/filebeat/certs
+      args:
+        executable: /bin/bash
+    
+    - name: configure connection from server to indexer
+      shell: |
+        echo 'admin' | /var/ossec/bin/wazuh-keystore -f indexer -k username
+        echo 'Dvntr@444' | /var/ossec/bin/wazuh-keystore -f indexer -k password
+      args:
+        executable: /bin/bash
+      
+    - name: edit ossec.conf
+      template:
+        src: /home/ansible-master/ansible/templates/wazuh/ossec.conf
+        dest: /var/ossec/etc/ossec.conf
+    
+    - name: start wazuh server service
+      shell: |
+        systemctl daemon-reload
+        systemctl enable wazuh-manager
+        systemctl start wazuh-manager
+      args:
+        executable: /bin/bash
+      
+    - name: start filebeat service
+      shell: |
+        systemctl daemon-reload
+        systemctl enable filebeat
+        systemctl start filebeat
+      args:
+        executable: /bin/bash
+    
+    - name: install packages for dashboard
+      shell: |
+        apt-get install debhelper tar curl libcap2-bin
+      args:
+        executable: /bin/bash
+
+    - name: install wazuh-dashboard
+      shell: |
+        apt-get -y install wazuh-dashboard
+      args:
+        executable: /bin/bash
+    
+    - name: configure opensearch_dashboard.yml
+      template:
+        src: /home/ansible-master/ansible/templates/wazuh/opensearch_dashboards.yml
+        dest: /etc/wazuh-dashboard/opensearch_dashboards.yml
+
+    - name: deploying certificates for dashboard
+      shell: |
+        cd /home/waz/
+        NODE_NAME={{dashboard_name}}
+        mkdir /etc/wazuh-dashboard/certs
+        tar -xf ./wazuh-certificates.tar -C /etc/wazuh-dashboard/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./root-ca.pem
+        mv -n /etc/wazuh-dashboard/certs/$NODE_NAME.pem /etc/wazuh-dashboard/certs/dashboard.pem
+        mv -n /etc/wazuh-dashboard/certs/$NODE_NAME-key.pem /etc/wazuh-dashboard/certs/dashboard-key.pem
+        chmod 500 /etc/wazuh-dashboard/certs
+        chmod 400 /etc/wazuh-dashboard/certs/*
+        chown -R wazuh-dashboard:wazuh-dashboard /etc/wazuh-dashboard/certs
+      args:
+        executable: /bin/bash
+
+    - name: start dashboard service
+      shell: |
+        systemctl daemon-reload
+        systemctl enable wazuh-dashboard
+        systemctl start wazuh-dashboard
+      args:
+        executable: /bin/bash
+    
+    - name: configure wazuh.yml
+      template:
+        src: /home/ansible-master/ansible/templates/wazuh/wazuh.yml
+        dest: /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
