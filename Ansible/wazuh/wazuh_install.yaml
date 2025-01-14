@@ -100,7 +100,7 @@
       shell: |
         filebeat keystore create
         echo admin | filebeat keystore add username --stdin --force
-        echo Dvntr@444 | filebeat keystore add password --stdin --force
+        echo admin | filebeat keystore add password --stdin --force
       args:
         executable: /bin/bash
 
@@ -160,7 +160,7 @@
     
     - name: install packages for dashboard
       shell: |
-        apt-get install debhelper tar curl libcap2-bin
+        apt-get -y install debhelper tar curl libcap2-bin
       args:
         executable: /bin/bash
 
