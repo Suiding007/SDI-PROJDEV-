@@ -10,7 +10,7 @@ $setup = @{
     LogPath = "C:\Windows\NTDS"
     SysvolPath = "C:\Windows\SYSVOL"
     NoRebootOnCompletion = $false 
-    ReplicationSourceDC = "ad0-knaak.knaak-hosting.nl"
+    ReplicationSourceDC = "ad1-knaak.knaak-hosting.nl"
     Force = $true
 }
 Install-ADDSDomainController @setup
