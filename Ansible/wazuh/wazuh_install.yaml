@@ -133,7 +133,7 @@
     - name: configure connection from server to indexer
       shell: |
         echo 'admin' | /var/ossec/bin/wazuh-keystore -f indexer -k username
-        echo 'Dvntr@444' | /var/ossec/bin/wazuh-keystore -f indexer -k password
+        echo 'admin' | /var/ossec/bin/wazuh-keystore -f indexer -k password
       args:
         executable: /bin/bash
       

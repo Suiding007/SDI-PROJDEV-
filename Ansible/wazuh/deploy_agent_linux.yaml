@@ -1,0 +1,30 @@
+---
+- name: install Wazuh agent on workstations
+  hosts: ADworkstations
+  become: True
+  vars:
+    workstations:
+    - {agent_agent: workstation-1, agent_group: workstations}
+    - {agent_agent: workstation-2, agent_group: workstations}
+    - {agent_agent: workstation-3, agent_group: workstations}
+    - {agent_agent: workstation-4, agent_group: workstations}
+    - {agent_agent: workstation-5, agent_group: workstations}
+
+  tasks:
+    - name: apt update
+      apt:
+        update_cache: yes
+
+    - name: install agent
+      shell: |
+        wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.10.0-1_amd64.deb && sudo WAZUH_MANAGER='10.0.8.20' WAZUH_AGENT_GROUP='<agent_group>' WAZUH_AGENT_NAME='<agent_name>' dpkg -i ./wazuh-agent_4.10.0-1_amd64.deb
+      args:
+        executable: /bin/bash
+    
+    - name: enable/start agent
+      shell: |
+        sudo systemctl daemon-reload
+        sudo systemctl enable wazuh-agent
+        sudo systemctl start wazuh-agent
+      args:
+        executable: /bin/bash
