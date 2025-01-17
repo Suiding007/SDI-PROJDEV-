@@ -1,3 +1,23 @@
+$ipConfig = @{
+   
+    InterfaceIndex = 4
+    IPAddress = "10.0.8.99"
+    PrefixLength = 24
+    DefaultGateway = "10.0.8.1" 
+    AddressFamily = "IPv4" 
+
+}
+New-NetIPAddress @ipConfig
+
+$addDNS = @{
+
+    InterfaceIndex = 4
+    ServerAddress = ("10.8.0.10")
+
+
+} 
+Set-DnsClientServerAddress @addDNS
+
 $setup = @{
     DomainName = "knaak-hosting.nl"
     Credential = (Get-Credential "KNAAK-HOSTING\KnaakAdmin")
