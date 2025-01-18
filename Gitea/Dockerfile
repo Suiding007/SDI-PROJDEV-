@@ -1,53 +1,53 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     software-properties-common \
+    && add-apt-repository ppa:ondrej/php -y \
+    && apt-get update
+
+RUN apt-get update && apt-get install -y \
     apache2 \
     mysql-client \
-    mysql-server \
-    libapache2-mod-php \
-    php7.4 \
-    php7.4-pspell \
-    php7.4-curl \
-    php7.4-gd \
-    php7.4-intl \
-    php7.4-mysql \
-    php7.4-xml \
-    php7.4-xmlrpc \
-    php7.4-ldap \
-    php7.4-zip \
-    php7.4-soap \
-    php7.4-mbstring \
-    git && \
-    add-apt-repository ppa:ondrej/php && \
-    apt-get update && \
-    apt-get clean
+    php8.1 \
+    php8.1-cli \
+    php8.1-mysql \
+    php8.1-xmlrpc \
+    php8.1-intl \
+    php8.1-curl \
+    php8.1-zip \
+    php8.1-gd \
+    php8.1-xml \
+    php8.1-mbstring \
+    php8.1-soap \
+    git \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN a2enmod rewrite ssl headers
 
 
-COPY init_mysql.sql /docker-entrypoint-initdb.d/init_mysql.sql
 
-RUN sed -i -e"s/^bind-address\s*=\s*127.0.0.1/bind-address = 0.0.0.0/" /etc/mysql/my.cnf
-RUN git clone -b MOODLE_400_STABLE --depth=1 git://git.moodle.org/moodle.git /opt/moodle
+RUN git clone --branch MOODLE_401_STABLE git://git.moodle.org/moodle.git 
+RUN cp -a /moodle /var/www/moodle 
 
-RUN cp -R /opt/moodle /var/www/html/moodle
+RUN mkdir /var/www/moodledata && \
+    chown -R www-data /var/www/moodledata && \
+    chmod -R 777 /var/www/moodledata && \
+    chmod -R 777 /var/www/moodle
 
-RUN mkdir /var/moodledata && \
-    chown -R www-data:www-data /var/moodledata && \
-    chmod -R 777 /var/moodledata && \
-    chmod -R 777 /var/www
+# Set Moodle as the DocumentRoot for Apache
+RUN sed -i 's|/var/www/html|/var/www/moodle|g' /etc/apache2/sites-available/000-default.conf \
+    && sed -i 's|/var/www/html|/var/www/moodle|g' /etc/apache2/apache2.conf
 
-COPY config.php /var/www/html/moodle/config.php
+RUN sed -i 's/^\s*;\s*max_input_vars\s*=.*/max_input_vars = 5000/' /etc/php/8.1/apache2/php.ini \
+    && sed -i 's/^\s*;\s*max_input_vars\s*=.*/max_input_vars = 5000/' /etc/php/8.1/cli/php.ini
 
-COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
+COPY docker-entrypoint.sh /usr/local/bin/
 
-RUN service apache2 restart
-# RUN php /var/www/html/moodle/admin/cli/install_database.php \
-#     --adminuser=pcgebruiker \
-#     --adminpass=Welkom123 \
-#     --adminemail=testmail@test.nl \ 
-#     --agree-license
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-CMD bash -c "service mysql start && mysql < /docker-entrypoint-initdb.d/init_mysql.sql && exec /usr/sbin/apachectl -D FOREGROUND"
-# ###############################################3
+EXPOSE 80
+
+ENTRYPOINT ["docker-entrypoint.sh"]
