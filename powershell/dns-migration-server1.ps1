@@ -9,6 +9,6 @@ Add-DnsServerResourceRecord -ZoneName "ijsselstreek-university.nl" -A -Name "win
 Add-DnsServerResourceRecord -ZoneName "ijsselstreek-university.nl"  -AllowUpdateAny -NameServer "wins1.ijsselstreek-university.nl" -NS "ijsselstreek-university.nl" 
 
 ########crate NS wins2 record#########
-Add-DnsServerResourceRecord -ZoneName "ijsselstreek-university.nl" -A -Name "wins2" -AllowUpdateAny -IPv4Address "10.8.0.11"
+Add-DnsServerResourceRecord -ZoneName "ijsselstreek-university.nl" -A -Name "wins2" -AllowUpdateAny -IPv4Address "10.0.8.99"
 Add-DnsServerResourceRecord -ZoneName "ijsselstreek-university.nl"  -AllowUpdateAny -NameServer "wins2.ijsselstreek-university.nl" -NS "ijsselstreek-university.nl" 
 
