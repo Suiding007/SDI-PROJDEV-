@@ -1,3 +1,4 @@
+# Playbook om Stalwart te installeren. Het configuratiebestand "config.toml" is te vinden in de /mailconfigs/ folder.
 - name: Configureer mailserver
   hosts: mailserver
   become: true

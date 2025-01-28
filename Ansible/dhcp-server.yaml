@@ -1,3 +1,4 @@
+# Playbook om isc-DHCP-server op te zetten.
 - name: Configureer DHCP server
   hosts: server6
   become: true

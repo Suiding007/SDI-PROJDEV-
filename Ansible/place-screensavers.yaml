@@ -1,0 +1,22 @@
+# Playbook om screensavers en desktop achtergronden op werkstations te zetten.
+- name: Plaats screensavers in workstations
+  hosts: ADworkstations
+  become: true
+
+  tasks:  
+    - name: Maak de directory /usr/share/backgrounds
+      ansible.builtin.file:
+        path: /usr/share/backgrounds
+        state: directory
+
+    - name: Plaats de desktop background in de directory
+      copy:
+         src: ./screensavers/desktop.png
+         dest: /usr/share/backgrounds/desktop.png
+         mode: a+r
+
+    - name: Plaats de login background in de directory
+      copy:
+         src: ./screensavers/lock.png
+         dest: /usr/share/backgrounds/lock.png
+         mode: a+r

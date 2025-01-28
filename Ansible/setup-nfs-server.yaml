@@ -1,3 +1,4 @@
+# Playbook om NFS op te zetten op een ubuntu server.
 - name: Configureer NFS server
   hosts: server5
   become: true

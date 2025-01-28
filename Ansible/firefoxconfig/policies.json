@@ -1,0 +1,28 @@
+{
+    "policies": {
+        "Homepage": {
+            "URL": "https://www.duckduckgo.com",
+            "Locked": true
+        },
+        "Bookmarks": [
+            {
+                "Title": "Uitschrijven",
+                "URL": "https://www.hbostart.nl/hoe-kan-ik-stoppen-hbo-opleiding/"
+            },
+            {
+                "Title": "Mail",
+                "URL": "https://10.8.0.10/owa"
+            },
+            {
+                "Title": "Moodle",
+                "URL": "http://10.0.8.101:8080"
+            },
+            {
+                "Title": "Facebook (geblokkeerd)",
+                "URL": "https://facebook.com"
+            }
+        ],
+        "DisplayBookmarksToolbar": true,
+        "DisableBuiltInBookmarks": true
+    }
+}

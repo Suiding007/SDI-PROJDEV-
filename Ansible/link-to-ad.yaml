@@ -1,0 +1,31 @@
+# Playbook om workstation to linken aan Active Directory.
+- name: Link workstation aan ad
+  hosts: ADworkstations
+  become: true
+
+  tasks:
+    - name: Installeer de required packages
+      apt:
+        pkg:
+        - sssd-ad
+        - sssd-tools
+        - realmd
+        - adcli
+
+    - name: Join de domain
+      shell:
+        cmd: echo Knaakhosting4.2! | realm join -U Knaakadmin knaak-hosting.nl
+
+    - name: Install Kerberos
+      apt:
+        pkg:
+        - krb5-user
+
+    - name: Installeer ADSys
+      apt:
+        pkg:
+        - adsys
+
+    - name: Zet homedir creation aan
+      shell:
+        cmd: sudo pam-auth-update --enable mkhomedir

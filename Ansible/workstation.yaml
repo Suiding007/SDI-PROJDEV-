@@ -1,11 +1,13 @@
-- name: Configureer wekstations
+# Workstation
+
+- name: Configureer werkstations
   hosts: workstations
   become: true
 
   tasks:
-    - name: Upgrade de packages tot de latest version
-      ansible.builtin.apt:
-        upgrade: dist
+    # - name: Upgrade de packages tot de latest version
+    #   ansible.builtin.apt:
+    #     upgrade: dist
 
     - name: Thunderbird, 7-Zip, LibreOffice en clamav
       apt: 
@@ -15,7 +17,7 @@
         - p7zip-full
         - clamav
         - clamav-daemon
-        state: latest
+        # state: latest
 
     - name: Restart de clamav service
       systemd:

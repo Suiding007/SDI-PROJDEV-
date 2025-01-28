@@ -1,3 +1,4 @@
+# Playbook om werkstation te linken aan de NFS server, waardoor homedirectories op de NFS opgeslagen en gesynced worden.
 - name: Configureer NFS client
   hosts: workstation
   become: true

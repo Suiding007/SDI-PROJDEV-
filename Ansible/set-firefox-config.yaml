@@ -1,0 +1,16 @@
+# Playbook om firefox op de werkstations te voorzien van een policy "/firefoxconfig/policies.json" die als standaarconfiguratie dient.
+- name: Plaats firefox policies op workstations
+  hosts: ADworkstations
+  become: true
+
+  tasks:
+    - name: Maak de directory /etc/firefox/
+      ansible.builtin.file:
+        path: /etc/firefox/policies/
+        state: directory
+
+    - name: Plaats de policies in de directory
+      copy:
+        src: ./firefoxconfig/policies.json
+        dest: /etc/firefox/policies/policies.json
+        mode: a+r
